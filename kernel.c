@@ -1,19 +1,37 @@
-static char *const VGA_MEMORY = (char *)0xb8000;
-static const int VGA_WIDTH = 80;
-static const int VGA_HEIGHT = 25;
+#include "kernel/tty.h"
+#include "kernel/io.h"
+#include "kernel/kbd.h"
+#include "libc/include/string.h"
 
-void kernel_early(void) {}
+void kernel_early(void) {
+    terminal_initialize();
+}
 
-int main() {
-    const char *str = "Hello world";
-    unsigned int i = 0; // text string position
-    unsigned int j = 0; // video buffer position
+int main(void) {
+    char *buff;
+    strcpy(&buff[strlen(buff)], "");
+    printprompt();
 
-    while (str[i] != '\0') {
-        VGA_MEMORY[j] = str[i];
-        VGA_MEMORY[j + 1] = 0x07;
-        i++;
-        j = j + 2;
+    while (1) {
+        uint8_t byte;
+        while (byte = scan()) {
+            if (byte == 0x1c) {
+                if (strlen(buff) > 0 && strcmp(buff, "exit") == 0) {
+                    printf("\nGoodbye !");
+                }
+                printprompt();
+                memset(&buff[0], 0, sizeof(buff));
+                break;
+            }
+            else {
+                char c = normalmap[byte];
+                char *s;
+                s = (char *)ctos(s, c);
+                printf("% s", s);
+                strcpy(&buff[strlen(buff)], s);
+            }
+            move_cursor(get_terminal_row(), get_terminal_col());
+        }
     }
 
     return 0;
